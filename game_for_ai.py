@@ -31,6 +31,7 @@ class MazeGame:
         self.exit_pos = self.find_position(2)
         self.steps = 0
         self.direction = None
+        self.positions_before = set()
 
     def find_position(self, value):
         """Helper function to find the position of a value in the grid."""
@@ -43,7 +44,7 @@ class MazeGame:
     def move(self, action):
         """Move the player in the specified direction."""
         direction = self.action_to_dir(action)
-
+        self.positions_before.add(self.player_pos)
 
         self.direction = direction
         if direction == Direction.UP:
@@ -85,6 +86,7 @@ class MazeGame:
         self.player_pos = self.find_position(-1)
         self.steps = 0
         self.direction = None
+        self.positions_before = set()
 
     def action_to_dir(self, action):
         """Convert the action to a direction."""
@@ -102,8 +104,7 @@ class MazeGame:
         """Check if a position is a collision (i.e. a wall) if yes return to previous position."""
         x, y = pos
         direction = self.action_to_dir(action)
-
-        if self.grid[y][x] == 0 or x < 0 or x >= len(self.grid[y]) or y < 0 or y >= len(self.grid):
+        if x < 0 or x >= len(self.grid[0]) or y < 0 or y >= len(self.grid) or self.grid[y][x] == 0:
             if direction == Direction.UP:
                 self.player_pos = (x, y + 1)
             elif direction == Direction.DOWN:
@@ -134,21 +135,26 @@ class MazeGame:
         self.move(action)
 
         # Check for collisions
+        self.is_collision(self.player_pos, action)
         self.draw_grid() # draw to show collision
-        if self.is_collision(self.player_pos, action):
-            reward += -10
         
-        if self.steps >= 1000:
+        if self.steps >= 999:
             done = True
-            reward += -100
+            reward += -1000
+
+        # miuns for going back or for collision
+        if self.player_pos in self.positions_before:
+            reward += -20
+        else:
+            reward += 15
 
 
         if self.player_pos == self.exit_pos:
-            reward += 100
+            reward += 3000
             done = True
 
 
-        reward += -1
+        reward += -5
         self.steps += 1
 
         # Draw the grid

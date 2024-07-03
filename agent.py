@@ -16,7 +16,7 @@ class Agent:
         self.epsilon = 0  # randomness
         self.gamma = 0.9  # discount rate
         self.memory = deque(maxlen=MAX_MEMORY)  # replay memory
-        self.model = Linear_QNet(11, 256, 4)
+        self.model = Linear_QNet(16, 256, 4)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
     def get_state(self, game):
@@ -39,23 +39,18 @@ class Agent:
         state = [
             
             # Danger straight
-            (dir_r and game.is_collision(point_r)) or 
-            (dir_l and game.is_collision(point_l)) or 
-            (dir_u and game.is_collision(point_u)) or 
+            (dir_r and game.is_collision(point_r)),
+            (dir_l and game.is_collision(point_l)),
+            (dir_u and game.is_collision(point_u)),
             (dir_d and game.is_collision(point_d)),
 
-            # Danger right
-            (dir_u and game.is_collision(point_r)) or 
-            (dir_d and game.is_collision(point_l)) or 
-            (dir_l and game.is_collision(point_u)) or 
-            (dir_r and game.is_collision(point_d)),
+            # Has been here before straight
+            (dir_r and point_r in game.positions_before),
+            (dir_l and point_l in game.positions_before),
+            (dir_u and point_u in game.positions_before),
+            (dir_d and point_d in game.positions_before),
 
-            # Danger left
-            (dir_d and game.is_collision(point_r)) or 
-            (dir_u and game.is_collision(point_l)) or 
-            (dir_r and game.is_collision(point_u)) or 
-            (dir_l and game.is_collision(point_d)),
-            
+
             # Move direction
             dir_l,
             dir_r,
@@ -86,9 +81,9 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        self.epsilon = 80 - self.n_games
+        self.epsilon = 1 - self.n_games / 1000
         final_move = [0, 0, 0, 0]
-        if random.randint(0, 200) < self.epsilon:
+        if random.random() < self.epsilon:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:
@@ -135,13 +130,18 @@ def train():
                 record = steps
                 agent.model.save()
 
-            print('Game', agent.n_games, 'Steps', steps, 'Record:', record)
+            print('Game', agent.n_games, 'Steps', steps, 'Epsilon', agent.epsilon)
 
             plot_scores.append(steps)
             total_score += steps
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+
+            if agent.epsilon < -0.5:
+                plot(plot_scores, plot_mean_scores, './plot5.png')
+                break
+
 
 
 if __name__ == '__main__':
