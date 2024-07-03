@@ -15,7 +15,8 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 
 # Rozmiar komórek labiryntu
-CELL_SIZE = 20
+SIZE = 12
+CELL_SIZE = WIDTH // SIZE
 NUM_CELLS_X = WIDTH // CELL_SIZE
 NUM_CELLS_Y = HEIGHT // CELL_SIZE
 
@@ -25,7 +26,7 @@ grid = []
 # Wczytanie labiryntu z pliku
 def load_maze():
     global grid
-    with open("maze.txt", "r") as f:
+    with open("minimaze.txt", "r") as f:
         grid = [list(map(int, line.strip().split())) for line in f]
         print(grid)
 

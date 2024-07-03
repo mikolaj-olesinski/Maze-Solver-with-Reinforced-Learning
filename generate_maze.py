@@ -15,7 +15,8 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
 # Rozmiar komórek labiryntu
-CELL_SIZE = 20
+SIZE = 12
+CELL_SIZE = WIDTH // SIZE
 NUM_CELLS_X = WIDTH // CELL_SIZE
 NUM_CELLS_Y = HEIGHT // CELL_SIZE
 
