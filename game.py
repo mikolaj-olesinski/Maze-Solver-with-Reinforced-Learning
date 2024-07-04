@@ -136,13 +136,13 @@ class MazeGame:
         
         if self.steps >= 999:
             done = True
-            reward += -1000
+            reward += -1500
 
         # miuns for going back or for collision
         if self.player_pos in self.positions_before:
             reward += -20
         else:
-            reward += 15
+            reward += 25
 
 
         if self.player_pos == self.exit_pos:

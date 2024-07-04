@@ -13,13 +13,16 @@ LR = 0.001
 
 class Agent:
 
-    def __init__(self):
+    def __init__(self, file_path=None):
         self.n_games = 0
         self.epsilon = 0  # randomness
         self.gamma = 0.9  
         self.memory = deque(maxlen=MAX_MEMORY) 
-        self.model = Linear_QNet(16, 256, 4)
+        self.model = Linear_QNet(20, 256, 4)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+        self.is_loaded = False
+        if file_path:
+            self.load_agent(file_path)
 
     def get_state(self, game):
 
@@ -38,57 +41,27 @@ class Agent:
         dir_d = direction == Direction.DOWN
 
 
+
         state = [
-            
-            # Danger straight
-            (dir_r and game.is_collision(point_r)) or
-            (dir_l and game.is_collision(point_l)) or
-            (dir_u and game.is_collision(point_u)) or
-            (dir_d and game.is_collision(point_d)),
+            # Player position
+            player_pos[0],
+            player_pos[1],
 
-            # Danger right
-            (dir_u and game.is_collision(point_r)) or
-            (dir_d and game.is_collision(point_l)) or
-            (dir_l and game.is_collision(point_u)) or
-            (dir_r and game.is_collision(point_d)),
+            # Exit position
+            exit_pos[0],
+            exit_pos[1],
 
-            # Danger left
-            (dir_d and game.is_collision(point_r)) or
-            (dir_u and game.is_collision(point_l)) or
-            (dir_r and game.is_collision(point_u)) or
-            (dir_l and game.is_collision(point_d)),
+            # Points around player
+            game.grid[point_l[1]][point_l[0]],
+            game.grid[point_r[1]][point_r[0]],
+            game.grid[point_u[1]][point_u[0]],
+            game.grid[point_d[1]][point_d[0]],
 
-            # Danger behind
-            (dir_l and game.is_collision(point_r)) or
-            (dir_r and game.is_collision(point_l)) or
-            (dir_d and game.is_collision(point_u)) or
-            (dir_u and game.is_collision(point_d)),
-
-
-            # Has been here before straight
-            (dir_r and point_r in game.positions_before) or
-            (dir_l and point_l in game.positions_before) or
-            (dir_u and point_u in game.positions_before) or
-            (dir_d and point_d in game.positions_before),
-
-            # Has been here before right
-            (dir_u and point_r in game.positions_before) or
-            (dir_d and point_l in game.positions_before) or
-            (dir_l and point_u in game.positions_before) or
-            (dir_r and point_d in game.positions_before),
-
-            # Has been here before left
-            (dir_d and point_r in game.positions_before) or
-            (dir_u and point_l in game.positions_before) or
-            (dir_r and point_u in game.positions_before) or
-            (dir_l and point_d in game.positions_before),
-
-            # Has been here before behind
-            (dir_l and point_r in game.positions_before) or
-            (dir_r and point_l in game.positions_before) or
-            (dir_u and point_u in game.positions_before) or
-            (dir_d and point_d in game.positions_before),
-
+            #visited before
+            (point_l in game.positions_before),
+            (point_r in game.positions_before),
+            (point_u in game.positions_before),
+            (point_d in game.positions_before),
 
             # Move direction
             dir_l,
@@ -120,47 +93,52 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        self.epsilon = 1 - self.n_games / 10
+        self.epsilon = 1 - self.n_games / 1000
         final_move = [0, 0, 0, 0]
+        self.epsilon = 0.1 if self.is_loaded else self.epsilon
+
         if random.random() < self.epsilon:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:
+            print(state)
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
             final_move[move] = 1
 
+        
+
         return final_move
+    
+    def load_agent(self, file_path):
+        self.model.load_state_dict(torch.load(file_path))
+        self.model.eval()
+        self.is_loaded = True
 
 
 def train():
     plot_scores = []
     plot_mean_scores = []
+    mean_last_100s = []
     total_score = 0
     record = 1000
     agent = Agent()
     game = MazeGame()
 
     while True:
-        # get old state
         state_old = agent.get_state(game)
 
-        # get move
         final_move = agent.get_action(state_old)
 
-        # perform move and get new state
         reward, done, steps = game.play_step(final_move)
         state_new = agent.get_state(game)
 
-        # train short memory
         agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        # remember
         agent.remember(state_old, final_move, reward, state_new, done)
 
         if done:
-            # train long memory, plot result
             game._reset()
             agent.n_games += 1
             agent.train_long_memory()
@@ -171,14 +149,15 @@ def train():
             total_score += steps
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
-            plot(plot_scores, plot_mean_scores)
             mean_last_100 = np.mean(plot_scores[-100:])
+            mean_last_100s.append(mean_last_100)
+            plot(plot_scores, plot_mean_scores, mean_last_100s)
 
             print(f'Game {agent.n_games} Score: {steps}, Epsilon: {agent.epsilon}, Mean Score: {mean_score}, Mean Last 100: {mean_last_100}')
 
-            if agent.epsilon < -0.5:
-                agent.model.save(file_id=game.id, file_name=f"agent{datetime.now().strftime('%Y%m%d%H%M%S')}", best_score=record, mean_score=mean_score, n_games=agent.n_games, epsilon=agent.epsilon)
-                plot(plot_scores, plot_mean_scores, './plot5.png')
+            if agent.epsilon < -1.5:
+                agent.model.save(file_id=game.id, file_name=f"agent{datetime.now().strftime('%Y%m%d%H%M%S')}.pth", best_score=record, mean_score=mean_score, n_games=agent.n_games, epsilon=agent.epsilon)
+                plot(plot_scores, plot_mean_scores, './plot11.png')
                 break
 
 

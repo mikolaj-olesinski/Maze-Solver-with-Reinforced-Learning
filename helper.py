@@ -6,7 +6,7 @@ import numpy as np
 
 plt.ion()
 
-def plot(scores, mean_scores, filepath=None):
+def plot(scores, mean_scores, last100_mean, filepath=None):
     with contextlib.redirect_stdout(io.StringIO()):  # Suppress print output
         display.clear_output(wait=True)
         display.display(plt.gcf())
@@ -16,7 +16,8 @@ def plot(scores, mean_scores, filepath=None):
         plt.ylabel('Score')
         plt.plot(scores)
         plt.plot(mean_scores)
-        plt.plot([np.mean(scores[-100:])]*len(scores))
+        #niech sie aktualizuje i zapisuje
+        plt.plot(last100_mean)
         plt.ylim(ymin=0)
         plt.legend(['Score', 'Mean Score', 'Mean Last 100'])
         plt.text(len(scores)-1, scores[-1], str(scores[-1]))
