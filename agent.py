@@ -3,7 +3,9 @@ import random
 from collections import deque
 from model import Linear_QNet, QTrainer
 from helper import plot
-from game_for_ai import MazeGame, Direction
+from game import MazeGame, Direction
+import numpy as np
+from datetime import datetime
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -14,8 +16,8 @@ class Agent:
     def __init__(self):
         self.n_games = 0
         self.epsilon = 0  # randomness
-        self.gamma = 0.9  # discount rate
-        self.memory = deque(maxlen=MAX_MEMORY)  # replay memory
+        self.gamma = 0.9  
+        self.memory = deque(maxlen=MAX_MEMORY) 
         self.model = Linear_QNet(16, 256, 4)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
 
@@ -39,15 +41,52 @@ class Agent:
         state = [
             
             # Danger straight
-            (dir_r and game.is_collision(point_r)),
-            (dir_l and game.is_collision(point_l)),
-            (dir_u and game.is_collision(point_u)),
+            (dir_r and game.is_collision(point_r)) or
+            (dir_l and game.is_collision(point_l)) or
+            (dir_u and game.is_collision(point_u)) or
             (dir_d and game.is_collision(point_d)),
 
+            # Danger right
+            (dir_u and game.is_collision(point_r)) or
+            (dir_d and game.is_collision(point_l)) or
+            (dir_l and game.is_collision(point_u)) or
+            (dir_r and game.is_collision(point_d)),
+
+            # Danger left
+            (dir_d and game.is_collision(point_r)) or
+            (dir_u and game.is_collision(point_l)) or
+            (dir_r and game.is_collision(point_u)) or
+            (dir_l and game.is_collision(point_d)),
+
+            # Danger behind
+            (dir_l and game.is_collision(point_r)) or
+            (dir_r and game.is_collision(point_l)) or
+            (dir_d and game.is_collision(point_u)) or
+            (dir_u and game.is_collision(point_d)),
+
+
             # Has been here before straight
-            (dir_r and point_r in game.positions_before),
-            (dir_l and point_l in game.positions_before),
-            (dir_u and point_u in game.positions_before),
+            (dir_r and point_r in game.positions_before) or
+            (dir_l and point_l in game.positions_before) or
+            (dir_u and point_u in game.positions_before) or
+            (dir_d and point_d in game.positions_before),
+
+            # Has been here before right
+            (dir_u and point_r in game.positions_before) or
+            (dir_d and point_l in game.positions_before) or
+            (dir_l and point_u in game.positions_before) or
+            (dir_r and point_d in game.positions_before),
+
+            # Has been here before left
+            (dir_d and point_r in game.positions_before) or
+            (dir_u and point_l in game.positions_before) or
+            (dir_r and point_u in game.positions_before) or
+            (dir_l and point_d in game.positions_before),
+
+            # Has been here before behind
+            (dir_l and point_r in game.positions_before) or
+            (dir_r and point_l in game.positions_before) or
+            (dir_u and point_u in game.positions_before) or
             (dir_d and point_d in game.positions_before),
 
 
@@ -81,7 +120,7 @@ class Agent:
         self.trainer.train_step(state, action, reward, next_state, done)
 
     def get_action(self, state):
-        self.epsilon = 1 - self.n_games / 1000
+        self.epsilon = 1 - self.n_games / 10
         final_move = [0, 0, 0, 0]
         if random.random() < self.epsilon:
             move = random.randint(0, 3)
@@ -122,23 +161,23 @@ def train():
 
         if done:
             # train long memory, plot result
-            game.reset()
+            game._reset()
             agent.n_games += 1
             agent.train_long_memory()
 
-            if steps < record:
-                record = steps
-                agent.model.save()
 
-            print('Game', agent.n_games, 'Steps', steps, 'Epsilon', agent.epsilon)
 
             plot_scores.append(steps)
             total_score += steps
             mean_score = total_score / agent.n_games
             plot_mean_scores.append(mean_score)
             plot(plot_scores, plot_mean_scores)
+            mean_last_100 = np.mean(plot_scores[-100:])
+
+            print(f'Game {agent.n_games} Score: {steps}, Epsilon: {agent.epsilon}, Mean Score: {mean_score}, Mean Last 100: {mean_last_100}')
 
             if agent.epsilon < -0.5:
+                agent.model.save(file_id=game.id, file_name=f"agent{datetime.now().strftime('%Y%m%d%H%M%S')}", best_score=record, mean_score=mean_score, n_games=agent.n_games, epsilon=agent.epsilon)
                 plot(plot_scores, plot_mean_scores, './plot5.png')
                 break
 

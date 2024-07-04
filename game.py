@@ -1,13 +1,12 @@
 import pygame
 from enum import Enum
+from database import get_grid_by_id
 
 pygame.init()
 
-# Ustawienia okna
 WIDTH, HEIGHT = 600, 600
 WINDOW = pygame.display.set_mode((WIDTH, HEIGHT))
 
-# Kolory
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -24,16 +23,16 @@ class Direction(Enum):
 class MazeGame:
 
     def __init__(self):
-        with open("minimaze.txt", "r") as f:
-            self.grid = [list(map(int, line.strip().split())) for line in f]
-
-        self.player_pos = self.find_position(-1)
-        self.exit_pos = self.find_position(2)
+        self.id = 4
+        self.grid = get_grid_by_id(self.id)
+        self.player_pos = self._find_position(-1)
+        self.exit_pos = self._find_position(2)
         self.steps = 0
         self.direction = None
         self.positions_before = set()
 
-    def find_position(self, value):
+
+    def _find_position(self, value):
         """Helper function to find the position of a value in the grid."""
         for y in range(len(self.grid)):
             for x in range(len(self.grid[y])):
@@ -41,9 +40,9 @@ class MazeGame:
                     return (x, y)
         return None
 
-    def move(self, action):
+    def _move(self, action):
         """Move the player in the specified direction."""
-        direction = self.action_to_dir(action)
+        direction = self.__action_to_dir(action)
         self.positions_before.add(self.player_pos)
 
         self.direction = direction
@@ -59,7 +58,7 @@ class MazeGame:
             new_pos = self.player_pos
         self.player_pos = new_pos
 
-    def draw_grid(self):
+    def _draw_grid(self):
         """Draw the maze grid on the pygame window."""
         WINDOW.fill(WHITE)
 
@@ -81,14 +80,14 @@ class MazeGame:
                     pygame.draw.rect(WINDOW, BLUE,
                                         (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
 
-    def reset(self):
+    def _reset(self):
         """Reset the game to its initial state."""
-        self.player_pos = self.find_position(-1)
+        self.player_pos = self._find_position(-1)
         self.steps = 0
         self.direction = None
         self.positions_before = set()
 
-    def action_to_dir(self, action):
+    def __action_to_dir(self, action):
         """Convert the action to a direction."""
 
         if action == [1, 0, 0, 0]:
@@ -103,7 +102,7 @@ class MazeGame:
     def is_collision(self, pos, action=None):
         """Check if a position is a collision (i.e. a wall) if yes return to previous position."""
         x, y = pos
-        direction = self.action_to_dir(action)
+        direction = self.__action_to_dir(action)
         if x < 0 or x >= len(self.grid[0]) or y < 0 or y >= len(self.grid) or self.grid[y][x] == 0:
             if direction == Direction.UP:
                 self.player_pos = (x, y + 1)
@@ -117,7 +116,7 @@ class MazeGame:
             return True
         return False
 
-    def distance_to_exit(self):
+    def __distance_to_exit(self):
         """Calculate the Manhattan distance to the exit."""
         return abs(self.player_pos[0] - self.exit_pos[0]) + abs(self.player_pos[1] - self.exit_pos[1])
 
@@ -131,12 +130,9 @@ class MazeGame:
                 pygame.quit()
                 quit()
 
-        # Move the player
-        self.move(action)
-
-        # Check for collisions
+        self._move(action)
         self.is_collision(self.player_pos, action)
-        self.draw_grid() # draw to show collision
+        self._draw_grid() 
         
         if self.steps >= 999:
             done = True
@@ -157,15 +153,14 @@ class MazeGame:
         reward += -5
         self.steps += 1
 
-        # Draw the grid
-        self.draw_grid()
+        self._draw_grid()
         pygame.display.flip()
 
         return reward, done, self.steps
     
 if __name__ == "__main__":
     game = MazeGame()
-    game.draw_grid()
+    game._draw_grid()
     pygame.display.flip()
 
     while True:
