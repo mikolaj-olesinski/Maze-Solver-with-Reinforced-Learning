@@ -24,3 +24,18 @@ Reinforcement Learning: The system employs reinforcement learning techniques, al
 - **Azure SQL**: Manages data persistence, allowing for the storage and retrieval of agent data and game states. It ensures that data is saved securely and can be accessed for future analysis.
 
 ## Examples 
+
+
+https://github.com/user-attachments/assets/9b874013-224d-4c5b-ae8d-4948950452d2
+
+## Database 
+
+The database is created and managed in Azure SQL, providing a scalable and secure environment for storing and retrieving data.
+
+- **Maze Data Storage**: The database saves the generated mazes, including their dimensions, layout, and start/end positions. This allows for the preservation of maze configurations for future reference or analysis.
+- **Agent Data Storage**: It also stores data related to trained agents, including their performance metrics, model parameters, and training history. This ensures that information about each agent’s learning progress and results is retained for ongoing evaluation and improvement.
+Azure SQL’s capabilities ensure that all data is efficiently managed, with automatic scaling and high availability features supporting the application’s needs.
+
+## Example plot
+![Figure_1](https://github.com/user-attachments/assets/bd5774e3-63bb-4a63-a4af-8f03e733f70f)
+
