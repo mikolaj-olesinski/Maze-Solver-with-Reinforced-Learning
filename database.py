@@ -1,43 +1,51 @@
-import sqlite3
+import pyodbc
+import os
+from dotenv import load_dotenv
 
-conn = sqlite3.connect('maze_data.db')
+load_dotenv()
+
+server = os.getenv('SQL_SERVER')
+database = os.getenv('SQL_DATABASE')
+username = os.getenv('SQL_USERNAME')
+password = os.getenv('SQL_PASSWORD')
+driver = '/opt/homebrew/Cellar/msodbcsql17/17.10.6.1/lib/libmsodbcsql.17.dylib'
+
+conn_str = f'DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password};Authentication=ActiveDirectoryPassword'
+conn = pyodbc.connect(conn_str)
 c = conn.cursor()
-
 
 def create_database():
     c.execute('''
-        CREATE TABLE IF NOT EXISTS files (
-            id INTEGER PRIMARY KEY,
-            name TEXT,
-            grid TEXT,
-            width INTEGER,
-            height INTEGER,
-            start_x INTEGER,
-            start_y INTEGER,
-            end_x INTEGER,
-            end_y INTEGER
-        )
+        CREATE TABLE files (
+            id INTEGER PRIMARY KEY IDENTITY,
+            name NVARCHAR(MAX) NOT NULL,
+            grid NVARCHAR(MAX) NOT NULL,
+            width INTEGER NOT NULL,
+            height INTEGER NOT NULL,
+            start_x INTEGER NOT NULL,
+            start_y INTEGER NOT NULL,
+            end_x INTEGER NOT NULL,
+            end_y INTEGER NOT NULL
+        );
+
+        CREATE TABLE agents (
+            id INTEGER PRIMARY KEY IDENTITY,
+            file_id INTEGER NOT NULL,
+            file_name NVARCHAR(MAX) NOT NULL,
+            best_score INTEGER NOT NULL,
+            mean_score REAL NOT NULL,
+            n_games INTEGER NOT NULL,
+            epsilon REAL NOT NULL,
+            FOREIGN KEY (file_id) REFERENCES files (id)
+        );
     ''')
-            
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS agents (
-            id INTEGER PRIMARY KEY,
-            file_id INTEGER REFERENCES files(id),
-            file_name TEXT,
-            best_score INTEGER,
-            mean_score REAL,
-            n_games INTEGER,
-            epsilon REAL
-        )
-    ''')
-        
+
 def add_file(name, grid, width, height, start_x, start_y, end_x, end_y):
     c.execute('''
         INSERT INTO files (name, grid, width, height, start_x, start_y, end_x, end_y)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ''', (name, grid, width, height, start_x, start_y, end_x, end_y))
     conn.commit()
-conn.commit()
 
 def grid_str_to_list(grid_str):
     grid = []
@@ -60,6 +68,17 @@ def add_agent(file_id, file_name, best_score, mean_score, n_games, epsilon):
     ''', (file_id, file_name, best_score, mean_score, n_games, epsilon))
     conn.commit()
 
+def list_tables():
+    c.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';")
+    tables = c.fetchall()
+    for table in tables:
+        print(table[0])
+
 if __name__ == "__main__":
-    create_database()
+    list_tables()
     conn.close()
+
+
+
+
+

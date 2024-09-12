@@ -20,7 +20,7 @@ BLACK = (0, 0, 0)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 
-SIZE = 12
+SIZE = 20
 CELL_SIZE = WIDTH // SIZE
 NUM_CELLS_X = WIDTH // CELL_SIZE
 NUM_CELLS_Y = HEIGHT // CELL_SIZE
@@ -37,7 +37,7 @@ def generate_maze():
     stack.append(current_cell)
 
     while stack:
-        pygame.time.delay(1)
+        pygame.time.delay(20)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()

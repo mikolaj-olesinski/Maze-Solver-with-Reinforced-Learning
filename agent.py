@@ -43,37 +43,31 @@ class Agent:
 
 
         state = [
-            # Player position
             player_pos[0],
             player_pos[1],
 
-            # Exit position
             exit_pos[0],
             exit_pos[1],
 
-            # Points around player
             game.grid[point_l[1]][point_l[0]],
             game.grid[point_r[1]][point_r[0]],
             game.grid[point_u[1]][point_u[0]],
             game.grid[point_d[1]][point_d[0]],
 
-            #visited before
             (point_l in game.positions_before),
             (point_r in game.positions_before),
             (point_u in game.positions_before),
             (point_d in game.positions_before),
 
-            # Move direction
             dir_l,
             dir_r,
             dir_u,
             dir_d,
             
-            #END location
-            player_pos[0] < exit_pos[0],  # player is left of exit
-            player_pos[0] > exit_pos[0],  # player is right of exit
-            player_pos[1] < exit_pos[1],  # player is above exit
-            player_pos[1] > exit_pos[1],  # player is below exit
+            player_pos[0] < exit_pos[0],  
+            player_pos[0] > exit_pos[0],  
+            player_pos[1] < exit_pos[1], 
+            player_pos[1] > exit_pos[1], 
         ]
         return state
 
@@ -101,7 +95,6 @@ class Agent:
             move = random.randint(0, 3)
             final_move[move] = 1
         else:
-            print(state)
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             move = torch.argmax(prediction).item()
